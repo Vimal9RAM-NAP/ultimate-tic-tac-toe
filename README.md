@@ -40,45 +40,43 @@ Since this game is built as a self-contained single-page Web application, no hea
 1. **Clone the repository**:
 
    ```bash
-   git clone [https://github.com/YOUR-USERNAME/YOUR-REPO-NAME.git](https://github.com/YOUR-USERNAME/YOUR-REPO-NAME.git)
-   cd YOUR-REPO-NAME
-
-    Run locally:
-
-        Open index.html directly in any web browser.
-
-        Alternatively, use a lightweight live server (e.g., VS Code's Live Server extension) for the best local testing experience.
+   git clone [https://github.com/Vimal9RAM-NAP/ultimate-tic-tac-toe.git](https://github.com/Vimal9RAM-NAP/ultimate-tic-tac-toe.git)
+   cd ultimate-tic-tac-toe
    ```
 
-   🌐 Deploying to GitHub Pages
+2. **Run locally**:
+   - Open `index.html` directly in any web browser.
+   - _Alternatively_, use a lightweight live server (e.g., VS Code's **Live Server** extension) for the best local testing experience.
+
+---
+
+## 🌐 Deploying to GitHub Pages
 
 To share your game and host real-time multiplayer links online for free:
 
-    Push your repository to GitHub:
-    Bash
+1. Push your repository to GitHub:
+   ```bash
+   git add .
+   git commit -m "Update README formatting"
+   git push origin main
+   ```
+2. On GitHub, navigate to **Settings** > **Pages** (under "Code and automation").
+3. Set **Source** to `Deploy from a branch`.
+4. Select `main` branch and `/ (root)` folder, then click **Save**.
+5. Your live game link will be published automatically in 1–2 minutes at:  
+   `https://vimal9ram-nap.github.io/ultimate-tic-tac-toe/`
 
-    git add .
-    git commit -m "Add README and game files"
-    git push origin main
+---
 
-    On GitHub, navigate to Settings > Pages.
+## 🛠️ Built With
 
-    Set Source to Deploy from a branch.
+- **HTML5 & CSS3**: Glassmorphism UI, Responsive CSS Grid & Flexbox layout.
+- **Vanilla JavaScript (ES6+)**: OOP Game engine state machine.
+- **PeerJS (WebRTC)**: Serverless peer-to-peer data channels for real-time multiplayer synchronization.
+- **Web Audio API**: Dynamic sound synthesis without external audio files.
 
-    Select main branch and / (root) folder, then click Save.
+---
 
-    Your live link will be available at: https://<your-username>.github.io/<your-repo-name>/
+## 📄 License
 
-🛠️ Built With
-
-    HTML5 & CSS3: Glassmorphism UI, Responsive CSS Grid & Flexbox layout.
-
-    Vanilla JavaScript (ES6+): OOP Game engine state machine.
-
-    PeerJS (WebRTC): Peer-to-peer data channels for real-time synchronization.
-
-    Web Audio API: Dynamic sound synthesis without external audio assets.
-
-📄 License
-
-Distributed under the MIT License. See LICENSE for more information.
+Distributed under the MIT License. See `LICENSE` for more information.
