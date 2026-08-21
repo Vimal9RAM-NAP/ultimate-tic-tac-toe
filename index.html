@@ -316,14 +316,19 @@
             display: flex; flex-direction: column; gap: 12px; max-height: 85vh; overflow-y: auto;
         }
 
-        .guide-section {
-            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;
+        .link-input-box {
+            width: 100%; background: #0B0E14; border: 1px solid var(--bg-card-border);
+            color: var(--color-gold); padding: 10px; border-radius: 6px;
+            font-family: monospace; font-size: 0.85rem; outline: none; text-align: center;
         }
 
-        .guide-section h4 { color: var(--color-gold); margin-bottom: 4px; }
-
-        .star-rating { display: flex; justify-content: center; gap: 8px; font-size: 1.8rem; cursor: pointer; color: var(--color-text-muted); }
-        .star-rating span.active { color: var(--color-gold); }
+        .toast-notification {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, #00E5FF, #0088CC); color: #000;
+            font-weight: bold; padding: 10px 20px; border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,229,255,0.4); z-index: 200;
+            animation: fadeIn 0.3s ease;
+        }
 
         .spectate-banner {
             background: rgba(255, 215, 0, 0.2); border: 1px solid var(--color-gold);
@@ -407,15 +412,16 @@
 
         <!-- SCREEN 2: TOURNAMENT BRACKET OVERVIEW -->
         <div id="screen-tournament" class="screen hidden">
-            <div class="title-container">
+            <div class="title-container" style="position: relative; width: 100%;">
                 <h2 class="main-title" style="font-size: 1.5rem;">Tournament Arena</h2>
                 <p class="subtitle" id="tourney-subtitle">World Cup Bracket & Live Match Showcase</p>
             </div>
             <div class="glass-panel" style="width: 100%;">
                 <div id="bracket-display" class="bracket-container"></div>
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button id="btn-tourney-back" class="btn btn-secondary">🔙 Main Menu</button>
                     <button id="btn-start-tourney-match" class="btn btn-primary" style="flex: 1;">Play Next Match</button>
-                    <button id="btn-share-tournament" class="btn btn-secondary">🔗 Share Bracket State</button>
+                    <button id="btn-share-tournament" class="btn btn-secondary">🔗 Share Bracket Link</button>
                 </div>
             </div>
         </div>
@@ -495,7 +501,20 @@
         </div>
     </div>
 
-    <!-- MODAL 2: GAME OVER -->
+    <!-- MODAL 2: SHAREABLE LINK POPUP -->
+    <div id="modal-share" class="modal-overlay hidden">
+        <div class="glass-panel modal-content" style="text-align: center;">
+            <h3 class="main-title" style="font-size: 1.4rem;" id="modal-share-title">Share Game Link</h3>
+            <p style="font-size: 0.85rem; color: var(--color-text-muted);" id="modal-share-desc">Copy this link and send it to your friends to play or view:</p>
+            <input type="text" id="share-link-input" class="link-input-box" readonly>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btn-copy-modal-link" class="btn btn-primary" style="flex: 1;">📋 Copy Link</button>
+                <button id="btn-close-share-modal" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: GAME OVER -->
     <div id="modal-gameover" class="modal-overlay hidden">
         <div class="glass-panel modal-content" style="text-align: center;">
             <h2 id="modal-winner-title" class="main-title" style="font-size: 1.8rem;">VICTORY!</h2>
@@ -504,25 +523,11 @@
         </div>
     </div>
 
-    <!-- MODAL 3: RATE -->
-    <div id="modal-rate" class="modal-overlay hidden">
-        <div class="glass-panel modal-content" style="text-align: center;">
-            <h3>Rate Ultimate Tic Tac Toe</h3>
-            <div class="star-rating" id="star-rating">
-                <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span><span data-star="4">★</span><span data-star="5">★</span>
-            </div>
-            <p id="rating-feedback" class="subtitle">Click to rate!</p>
-            <button id="btn-close-rate" class="btn btn-small">Close</button>
-        </div>
-    </div>
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast-notification" class="toast-notification hidden">Link Copied to Clipboard!</div>
 
     <footer>
         <div>Created by <strong>Odd Jobs Dev Vimal Ram</strong> for Itch.io</div>
-        <div class="footer-links">
-            <span class="footer-link" id="link-rate">Rate Game</span>
-            <span>•</span>
-            <span class="footer-link" id="link-share">Share Game</span>
-        </div>
     </footer>
 
     <script>
@@ -572,7 +577,7 @@
                 this.initPowerDecks();
                 this.tournament = null;
                 this.isSpectating = false;
-                this.localPlayerIndex = 0; // For online multiplayer
+                this.localPlayerIndex = 0;
             }
 
             initPowerDecks() {
@@ -613,9 +618,7 @@
                     ? countries 
                     : Array.from({length: numPlayers}, (_, i) => `Player ${i + 1}`);
 
-                this.tournament = {
-                    size: numPlayers, currentRound: 0, matches: [], activeMatch: null
-                };
+                this.tournament = { size: numPlayers, currentRound: 0, matches: [], activeMatch: null };
                 const round1 = [];
                 for (let i = 0; i < numPlayers; i += 2) {
                     round1.push({ id: `R1M${i/2}`, p1: names[i], p2: names[i+1], winner: null, status: 'upcoming' });
@@ -703,30 +706,21 @@
             setupConnection() {
                 this.conn.on('open', () => {
                     this.controller.logAction("🔌 Peer Connected! Game Synchronized.");
-                    if (this.isHost) {
-                        this.sendState();
-                    }
+                    if (this.isHost) this.sendState();
                 });
 
                 this.conn.on('data', (data) => {
-                    if (data.type === 'MOVE') {
-                        this.controller.receiveRemoteMove(data);
-                    } else if (data.type === 'STATE_SYNC') {
-                        this.controller.syncGameState(data.state);
-                    }
+                    if (data.type === 'MOVE') this.controller.receiveRemoteMove(data);
+                    else if (data.type === 'STATE_SYNC') this.controller.syncGameState(data.state);
                 });
             }
 
             sendMove(moveData) {
-                if (this.conn && this.conn.open) {
-                    this.conn.send({ type: 'MOVE', ...moveData });
-                }
+                if (this.conn && this.conn.open) this.conn.send({ type: 'MOVE', ...moveData });
             }
 
             sendState() {
-                if (this.conn && this.conn.open) {
-                    this.conn.send({ type: 'STATE_SYNC', state: this.controller.model });
-                }
+                if (this.conn && this.conn.open) this.conn.send({ type: 'STATE_SYNC', state: this.controller.model });
             }
         }
 
@@ -778,7 +772,16 @@
                 document.getElementById('btn-in-game-guide').addEventListener('click', () => this.openGuide());
                 document.getElementById('btn-close-guide').addEventListener('click', () => this.closeGuide());
 
-                document.getElementById('btn-forfeit').addEventListener('click', () => this.showScreen('screen-landing'));
+                document.getElementById('btn-tourney-back').addEventListener('click', () => this.showScreen('screen-landing'));
+                document.getElementById('btn-forfeit').addEventListener('click', () => {
+                    if (this.model.mode === 'tournament') {
+                        this.renderTournamentBracket();
+                        this.showScreen('screen-tournament');
+                    } else {
+                        this.showScreen('screen-landing');
+                    }
+                });
+
                 document.getElementById('btn-modal-restart').addEventListener('click', () => {
                     document.getElementById('modal-gameover').classList.add('hidden');
                     if (this.model.mode === 'tournament') {
@@ -793,6 +796,9 @@
                 document.getElementById('btn-share-tournament').addEventListener('click', () => this.shareTournamentLink());
                 document.getElementById('btn-share-room').addEventListener('click', () => this.shareRoomLink());
 
+                document.getElementById('btn-copy-modal-link').addEventListener('click', () => this.copyShareModalLink());
+                document.getElementById('btn-close-share-modal').addEventListener('click', () => document.getElementById('modal-share').classList.add('hidden'));
+
                 document.querySelectorAll('.btn-power').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const power = btn.dataset.power;
@@ -804,20 +810,6 @@
                         this.updatePowerUI();
                     });
                 });
-
-                document.getElementById('link-rate').addEventListener('click', () => document.getElementById('modal-rate').classList.remove('hidden'));
-                document.getElementById('btn-close-rate').addEventListener('click', () => document.getElementById('modal-rate').classList.add('hidden'));
-
-                const stars = document.querySelectorAll('#star-rating span');
-                stars.forEach(star => {
-                    star.addEventListener('click', () => {
-                        const val = star.dataset.star;
-                        stars.forEach(s => s.classList.toggle('active', s.dataset.star <= val));
-                        document.getElementById('rating-feedback').innerText = `Thanks for rating ${val}/5 Stars!`;
-                    });
-                });
-
-                document.getElementById('link-share').addEventListener('click', () => this.shareTournamentLink());
             }
 
             openGuide() { document.getElementById('modal-guide').classList.remove('hidden'); }
@@ -828,10 +820,32 @@
                 document.getElementById(id).classList.remove('hidden');
             }
 
+            openShareModal(title, desc, url) {
+                document.getElementById('modal-share-title').innerText = title;
+                document.getElementById('modal-share-desc').innerText = desc;
+                const input = document.getElementById('share-link-input');
+                input.value = url;
+                document.getElementById('modal-share').classList.remove('hidden');
+                input.select();
+            }
+
+            copyShareModalLink() {
+                const input = document.getElementById('share-link-input');
+                navigator.clipboard.writeText(input.value);
+                this.showToast("Link Copied to Clipboard!");
+            }
+
+            showToast(msg) {
+                const toast = document.getElementById('toast-notification');
+                toast.innerText = msg;
+                toast.classList.remove('hidden');
+                setTimeout(() => toast.classList.add('hidden'), 2500);
+            }
+
             async hostOnlineMatch() {
                 const powers = document.getElementById('toggle-powers').checked;
                 this.model.setupMode('online', 'medium', powers, 4);
-                this.model.localPlayerIndex = 0; // Host is Player 1 (X)
+                this.model.localPlayerIndex = 0;
                 
                 const roomId = await this.net.init();
                 window.location.hash = `room=${roomId}`;
@@ -843,7 +857,7 @@
             async joinOnlineMatch(roomId) {
                 const powers = document.getElementById('toggle-powers').checked;
                 this.model.setupMode('online', 'medium', powers, 4);
-                this.model.localPlayerIndex = 1; // Client is Player 2 (O)
+                this.model.localPlayerIndex = 1;
                 
                 await this.net.init(roomId);
                 this.launchGameView();
@@ -851,13 +865,7 @@
             }
 
             shareRoomLink() {
-                const shareUrl = window.location.href;
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(shareUrl);
-                    alert("Invite link copied to clipboard! Send it to your friend.");
-                } else {
-                    alert(`Shareable Room Link: ${shareUrl}`);
-                }
+                this.openShareModal("1v1 Room Invite Link", "Send this invite link to your friend to join your online game:", window.location.href);
             }
 
             startNewMatch() {
@@ -1211,13 +1219,7 @@
 
             shareTournamentLink() {
                 this.updateURLState();
-                const shareUrl = window.location.href;
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(shareUrl);
-                    alert("Tournament Bracket Link copied to clipboard!");
-                } else {
-                    alert(`Shareable Link: ${shareUrl}`);
-                }
+                this.openShareModal("Tournament Bracket Link", "Share this bracket state link with friends or viewers:", window.location.href);
             }
 
             logAction(msg) {
