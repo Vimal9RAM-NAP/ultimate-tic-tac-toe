@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Tic Tac Toe: World Cup & Online Edition</title>
+    <!-- PeerJS for WebRTC Online Multiplayer -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-base: #0B0E14;
+            --bg-card: rgba(22, 27, 34, 0.75);
+            --bg-card-border: rgba(255, 255, 255, 0.1);
+            
+            --color-p1: #FF3366;
+            --color-p2: #00E5FF;
+            --color-p3: #FF9900;
+            --color-p4: #A855F7;
+            
+            --color-gold: #FFD700;
+            --color-text-main: #F0F6FC;
+            --color-text-muted: #8B949E;
+            
+            --glow-p1: 0 0 15px rgba(255, 51, 102, 0.6);
+            --glow-p2: 0 0 15px rgba(0, 229, 255, 0.6);
+            --glow-gold: 0 0 15px rgba(255, 215, 0, 0.6);
+            
+            --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --transition-speed: 0.25s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 51, 102, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 229, 255, 0.05) 0%, transparent 40%);
+            color: var(--color-text-main);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            overflow-x: hidden;
+            padding: 10px;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 950px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            flex-grow: 1;
+        }
+
+        .screen {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn var(--transition-speed) ease-in-out;
+        }
+
+        .hidden { display: none !important; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .glass-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--bg-card-border);
+            color: var(--color-text-main);
+            padding: 12px 20px;
+            min-height: 44px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--color-text-main);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-p1), #D00040);
+            border: none;
+            box-shadow: var(--glow-p1);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #00E5FF, #0088CC);
+            border: none;
+            box-shadow: var(--glow-p2);
+            color: #000;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            min-height: 36px;
+        }
+
+        .btn-power {
+            position: relative;
+            flex: 1;
+            padding: 8px 4px;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            border-radius: 6px;
+        }
+
+        .btn-power.active {
+            border-color: var(--color-gold);
+            box-shadow: var(--glow-gold);
+            background: rgba(255, 215, 0, 0.15);
+        }
+
+        .btn-power:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .badge-count {
+            font-size: 0.65rem;
+            background: rgba(255,255,255,0.2);
+            padding: 1px 5px;
+            border-radius: 10px;
+        }
+
+        .title-container { text-align: center; margin-bottom: 20px; }
+
+        .main-title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--color-p1), var(--color-p2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .subtitle { color: var(--color-text-muted); font-size: 0.9rem; margin-top: 4px; }
+
+        .menu-grid {
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        select {
+            background: #161B22;
+            color: var(--color-text-main);
+            border: 1px solid var(--bg-card-border);
+            padding: 8px 12px;
+            border-radius: 6px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #30363D; transition: .3s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: white; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--color-p1); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .game-hud { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; }
+        .turn-indicator { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; }
+        .player-badge { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+
+        .powers-deck { display: flex; gap: 8px; width: 100%; justify-content: space-between; }
+
+        .board-container { width: 100%; max-width: 500px; aspect-ratio: 1 / 1; margin: 0 auto; }
+        .main-board {
+            width: 100%; height: 100%; display: grid;
+            grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+            gap: 8px; background: rgba(255, 255, 255, 0.05); padding: 8px;
+            border-radius: 12px; border: 1px solid var(--bg-card-border);
+        }
+
+        .sub-board {
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+            gap: 4px; background: rgba(15, 20, 28, 0.8); padding: 4px; border-radius: 6px;
+            position: relative; transition: all 0.3s ease; border: 2px solid transparent;
+        }
+
+        .sub-board.active { border-color: var(--color-gold); box-shadow: var(--glow-gold); background: rgba(255, 215, 0, 0.03); }
+        .sub-board.frozen { border-color: #38BDF8; background: rgba(56, 189, 248, 0.1); }
+        .sub-board.frozen::after { content: '❄️'; position: absolute; top: 4px; right: 4px; font-size: 0.9rem; z-index: 5; }
+
+        .sub-board-overlay {
+            position: absolute; inset: 0; background: rgba(11, 14, 20, 0.85);
+            backdrop-filter: blur(2px); display: flex; align-items: center;
+            justify-content: center; font-size: 4rem; font-weight: 900;
+            border-radius: 4px; z-index: 10; animation: fadeIn 0.3s ease;
+        }
+
+        .sub-board-overlay.won-X { color: var(--color-p1); text-shadow: var(--glow-p1); }
+        .sub-board-overlay.won-O { color: var(--color-p2); text-shadow: var(--glow-p2); }
+        .sub-board-overlay.won-T { color: var(--color-text-muted); font-size: 2rem; }
+
+        .cell {
+            background: rgba(255, 255, 255, 0.03); border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; font-weight: 800; cursor: pointer;
+            transition: background 0.2s, transform 0.1s; position: relative;
+        }
+
+        .cell:hover:not(.occupied) { background: rgba(255, 255, 255, 0.1); }
+        .cell.occupied { cursor: not-allowed; }
+        .cell.cell-X { color: var(--color-p1); }
+        .cell.cell-O { color: var(--color-p2); }
+        .cell.shielded::before { content: '🛡️'; position: absolute; font-size: 0.6rem; top: 1px; left: 1px; }
+
+        .action-log {
+            width: 100%; height: 60px; overflow-y: auto; font-size: 0.8rem;
+            font-family: monospace; color: var(--color-text-muted);
+            display: flex; flex-direction: column-reverse; gap: 4px;
+            padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .log-highlight { color: var(--color-gold); }
+
+        .bracket-container {
+            display: flex; justify-content: space-between; width: 100%;
+            gap: 10px; margin: 15px 0; overflow-x: auto; padding-bottom: 10px;
+        }
+
+        .bracket-round { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; min-width: 140px; }
+
+        .matchup-card {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--bg-card-border);
+            padding: 8px 12px; border-radius: 6px; font-size: 0.8rem;
+            display: flex; flex-direction: column; gap: 4px; position: relative;
+        }
+
+        .matchup-card.ongoing { border-color: var(--color-gold); box-shadow: var(--glow-gold); }
+
+        .matchup-team { display: flex; justify-content: space-between; padding: 2px 0; }
+        .matchup-team.winner { color: var(--color-gold); font-weight: bold; }
+
+        .match-status-tag {
+            font-size: 0.65rem; color: #38BDF8; font-weight: bold; text-transform: uppercase;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .btn-spectate {
+            background: none; border: none; color: var(--color-gold); font-size: 0.65rem;
+            cursor: pointer; text-decoration: underline; padding: 0; margin-left: 5px;
+        }
+
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(5px); display: flex; align-items: center;
+            justify-content: center; z-index: 100;
+        }
+
+        .modal-content {
+            width: 90%; max-width: 450px; text-align: left;
+            display: flex; flex-direction: column; gap: 12px; max-height: 85vh; overflow-y: auto;
+        }
+
+        .guide-section {
+            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;
+        }
+
+        .guide-section h4 { color: var(--color-gold); margin-bottom: 4px; }
+
+        .star-rating { display: flex; justify-content: center; gap: 8px; font-size: 1.8rem; cursor: pointer; color: var(--color-text-muted); }
+        .star-rating span.active { color: var(--color-gold); }
+
+        .spectate-banner {
+            background: rgba(255, 215, 0, 0.2); border: 1px solid var(--color-gold);
+            color: var(--color-gold); text-align: center; padding: 6px; font-weight: bold;
+            font-size: 0.85rem; border-radius: 6px; margin-bottom: 10px; width: 100%;
+        }
+
+        footer {
+            width: 100%; margin-top: 15px; padding: 10px 0; text-align: center;
+            font-size: 0.8rem; color: var(--color-text-muted); display: flex;
+            flex-direction: column; align-items: center; gap: 8px;
+        }
+
+        .footer-links { display: flex; gap: 15px; }
+        .footer-link { color: var(--color-text-main); text-decoration: none; cursor: pointer; opacity: 0.8; }
+        .footer-link:hover { opacity: 1; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- SCREEN 1: MENU -->
+        <div id="screen-landing" class="screen">
+            <div class="title-container">
+                <h1 class="main-title">Ultimate Tic Tac Toe</h1>
+                <p class="subtitle">World Cup Edition • Realtime P2P Online Multiplayer</p>
+            </div>
+
+            <div class="glass-panel menu-grid">
+                <div class="setting-row">
+                    <label for="select-mode"><strong>Game Mode</strong></label>
+                    <select id="select-mode">
+                        <option value="1v1">1v1 Local Hotseat</option>
+                        <option value="online">1v1 Online Link (WebRTC)</option>
+                        <option value="ai">1v1 vs. AI Engine</option>
+                        <option value="2v2">2v2 Tag Team (4P)</option>
+                        <option value="tournament">Tournament Bracket</option>
+                    </select>
+                </div>
+
+                <div id="ai-difficulty-container" class="setting-row hidden">
+                    <label for="select-ai-diff"><strong>AI Difficulty</strong></label>
+                    <select id="select-ai-diff">
+                        <option value="easy">Easy (Casual)</option>
+                        <option value="medium" selected>Medium (Tactical)</option>
+                        <option value="hard">Hard (Minimax Engine)</option>
+                    </select>
+                </div>
+
+                <div id="tournament-size-container" class="setting-row hidden">
+                    <label for="select-tourney-size"><strong>Tournament Mode</strong></label>
+                    <select id="select-tourney-size">
+                        <option value="4">4 Players Bracket</option>
+                        <option value="8">8 Players Bracket</option>
+                        <option value="16" selected>🏆 16 Players World Cup Edition</option>
+                    </select>
+                </div>
+
+                <div class="setting-row">
+                    <label><strong>Power Moves Deck</strong></label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-powers" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <label><strong>Sound FX</strong></label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-sound" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <button id="btn-start-game" class="btn btn-primary">Launch Match</button>
+                <button id="btn-create-online-link" class="btn btn-secondary hidden">🔗 Host & Generate Room Link</button>
+                <button id="btn-open-guide" class="btn btn-secondary">📖 Rules & Guide</button>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: TOURNAMENT BRACKET OVERVIEW -->
+        <div id="screen-tournament" class="screen hidden">
+            <div class="title-container">
+                <h2 class="main-title" style="font-size: 1.5rem;">Tournament Arena</h2>
+                <p class="subtitle" id="tourney-subtitle">World Cup Bracket & Live Match Showcase</p>
+            </div>
+            <div class="glass-panel" style="width: 100%;">
+                <div id="bracket-display" class="bracket-container"></div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button id="btn-start-tourney-match" class="btn btn-primary" style="flex: 1;">Play Next Match</button>
+                    <button id="btn-share-tournament" class="btn btn-secondary">🔗 Share Bracket State</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: GAMEPLAY -->
+        <div id="screen-game" class="screen hidden">
+            <div id="spectate-banner" class="spectate-banner hidden">👁️ SPECTATOR MODE - LIVE BROADCAST</div>
+            
+            <div class="game-hud">
+                <div class="glass-panel status-bar">
+                    <div class="turn-indicator">
+                        <span id="player-badge" class="player-badge"></span>
+                        <span id="turn-text">Player 1's Turn</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-share-room" class="btn btn-small btn-secondary hidden">🔗 Invite Friend</button>
+                        <button id="btn-in-game-guide" class="btn btn-small btn-secondary">📖 Guide</button>
+                        <button id="btn-forfeit" class="btn btn-small">Quit</button>
+                    </div>
+                </div>
+
+                <div id="powers-deck-container" class="glass-panel powers-deck">
+                    <button class="btn btn-power" data-power="bomb" title="Clear non-shielded cell">
+                        <span>💣 Bomb</span>
+                        <span class="badge-count" id="count-bomb">1</span>
+                    </button>
+                    <button class="btn btn-power" data-power="freeze" title="Freeze sub-board for 1 turn">
+                        <span>❄️ Freeze</span>
+                        <span class="badge-count" id="count-freeze">1</span>
+                    </button>
+                    <button class="btn btn-power" data-power="wild" title="Target any board this turn">
+                        <span>🌀 Wild</span>
+                        <span class="badge-count" id="count-wild">1</span>
+                    </button>
+                    <button class="btn btn-power" data-power="shield" title="Shield your cell from bombs">
+                        <span>🛡️ Shield</span>
+                        <span class="badge-count" id="count-shield">1</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="board-container">
+                <div id="main-board" class="main-board"></div>
+            </div>
+
+            <div id="action-log" class="action-log"></div>
+        </div>
+
+    </div>
+
+    <!-- MODAL 1: RULES & GUIDE -->
+    <div id="modal-guide" class="modal-overlay hidden">
+        <div class="glass-panel modal-content">
+            <h2 class="main-title" style="font-size: 1.5rem; text-align: center;">How To Play</h2>
+            <div class="guide-section">
+                <h4>🎯 Core Objective</h4>
+                <p style="font-size: 0.85rem; color: var(--color-text-muted);">
+                    Win 3 sub-boards in a row (horizontal, vertical, or diagonal) to win the main board.
+                </p>
+            </div>
+            <div class="guide-section">
+                <h4>🧩 Board Movement Logic</h4>
+                <p style="font-size: 0.85rem; color: var(--color-text-muted);">
+                    Your move determines where your opponent plays next! Placing a token in cell #5 sends your opponent to Sub-Board #5.
+                </p>
+            </div>
+            <div class="guide-section">
+                <h4>⚡ Power-Up Arsenal (1 Use Each)</h4>
+                <p style="font-size: 0.82rem; color: var(--color-text-muted);">
+                    • <strong>💣 Bomb:</strong> Destroys any unshielded opponent token in active board.<br>
+                    • <strong>❄️ Freeze:</strong> Locks active board for 1 turn.<br>
+                    • <strong>🌀 Wild:</strong> Allows move placement in ANY open sub-board.<br>
+                    • <strong>🛡️ Shield:</strong> Places a token protected against bombs.
+                </p>
+            </div>
+            <button id="btn-close-guide" class="btn btn-primary" style="margin-top: 10px;">Got It!</button>
+        </div>
+    </div>
+
+    <!-- MODAL 2: GAME OVER -->
+    <div id="modal-gameover" class="modal-overlay hidden">
+        <div class="glass-panel modal-content" style="text-align: center;">
+            <h2 id="modal-winner-title" class="main-title" style="font-size: 1.8rem;">VICTORY!</h2>
+            <p id="modal-winner-text">Player 1 wins the match!</p>
+            <button id="btn-modal-restart" class="btn btn-primary">Continue</button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: RATE -->
+    <div id="modal-rate" class="modal-overlay hidden">
+        <div class="glass-panel modal-content" style="text-align: center;">
+            <h3>Rate Ultimate Tic Tac Toe</h3>
+            <div class="star-rating" id="star-rating">
+                <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span><span data-star="4">★</span><span data-star="5">★</span>
+            </div>
+            <p id="rating-feedback" class="subtitle">Click to rate!</p>
+            <button id="btn-close-rate" class="btn btn-small">Close</button>
+        </div>
+    </div>
+
+    <footer>
+        <div>Created by <strong>Odd Jobs Dev Vimal Ram</strong> for Itch.io</div>
+        <div class="footer-links">
+            <span class="footer-link" id="link-rate">Rate Game</span>
+            <span>•</span>
+            <span class="footer-link" id="link-share">Share Game</span>
+        </div>
+    </footer>
+
+    <script>
+        class AudioEngine {
+            constructor() { this.ctx = null; this.enabled = true; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.enabled) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.00001, this.ctx.currentTime + duration);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            }
+            playMove() { this.playTone(440, 'sine', 0.1); }
+            playPower() { this.playTone(880, 'triangle', 0.2, 0.15); }
+            playWin() {
+                if (!this.enabled) return;
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => setTimeout(() => this.playTone(f, 'sine', 0.3, 0.15), i * 100));
+            }
+        }
+
+        class GameModel {
+            constructor() { this.reset(); }
+
+            reset() {
+                this.board = Array(9).fill(null).map(() => Array(9).fill(null).map(() => ({ symbol: null, shielded: false })));
+                this.subBoardWinners = Array(9).fill(null);
+                this.frozenBoards = Array(9).fill(0);
+                this.activeSubBoard = null;
+                this.currentPlayerIndex = 0;
+                this.selectedPower = null;
+                this.mode = '1v1';
+                this.aiDifficulty = 'medium';
+                this.powersEnabled = true;
+
+                this.players = [
+                    { id: 0, name: 'Player 1', symbol: 'X', color: 'var(--color-p1)' },
+                    { id: 1, name: 'Player 2', symbol: 'O', color: 'var(--color-p2)' }
+                ];
+                this.initPowerDecks();
+                this.tournament = null;
+                this.isSpectating = false;
+                this.localPlayerIndex = 0; // For online multiplayer
+            }
+
+            initPowerDecks() {
+                this.powerDecks = {};
+                this.players.forEach(p => {
+                    this.powerDecks[p.id] = { bomb: 1, freeze: 1, wild: 1, shield: 1 };
+                });
+            }
+
+            setupMode(mode, aiDiff, powersEnabled, tourneySize) {
+                this.reset();
+                this.mode = mode;
+                this.aiDifficulty = aiDiff;
+                this.powersEnabled = powersEnabled;
+
+                if (mode === '2v2') {
+                    this.players = [
+                        { id: 0, name: 'Red 1', symbol: 'X', color: 'var(--color-p1)' },
+                        { id: 1, name: 'Blue 1', symbol: 'O', color: 'var(--color-p2)' },
+                        { id: 2, name: 'Red 2', symbol: 'X', color: 'var(--color-p3)' },
+                        { id: 3, name: 'Blue 2', symbol: 'O', color: 'var(--color-p4)' }
+                    ];
+                } else if (mode === 'ai') {
+                    this.players[1].name = `AI Engine (${aiDiff.toUpperCase()})`;
+                } else if (mode === 'tournament') {
+                    this.setupTournament(parseInt(tourneySize, 10));
+                }
+                this.initPowerDecks();
+            }
+
+            setupTournament(numPlayers) {
+                const countries = [
+                    'ARGENTINA', 'BRAZIL', 'GERMANY', 'FRANCE', 'SPAIN', 'ENGLAND', 'PORTUGAL', 'ITALY',
+                    'NETHERLANDS', 'BELGIUM', 'CROATIA', 'URUGUAY', 'JAPAN', 'MEXICO', 'USA', 'MOROCCO'
+                ];
+
+                const names = (numPlayers === 16) 
+                    ? countries 
+                    : Array.from({length: numPlayers}, (_, i) => `Player ${i + 1}`);
+
+                this.tournament = {
+                    size: numPlayers, currentRound: 0, matches: [], activeMatch: null
+                };
+                const round1 = [];
+                for (let i = 0; i < numPlayers; i += 2) {
+                    round1.push({ id: `R1M${i/2}`, p1: names[i], p2: names[i+1], winner: null, status: 'upcoming' });
+                }
+                this.tournament.matches.push(round1);
+                if (round1.length > 0) round1[0].status = 'ongoing';
+            }
+
+            getCurrentPlayer() { return this.players[this.currentPlayerIndex]; }
+
+            nextTurn() {
+                this.frozenBoards = this.frozenBoards.map(v => Math.max(0, v - 1));
+                this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+                this.selectedPower = null;
+            }
+
+            check3x3Win(grid) {
+                const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+                for (let [a,b,c] of lines) {
+                    if (grid[a] && grid[a] !== 'T' && grid[a] === grid[b] && grid[a] === grid[c]) return grid[a];
+                }
+                if (grid.every(cell => cell !== null)) return 'T';
+                return null;
+            }
+
+            updateSubBoardState(b) {
+                const flat = this.board[b].map(c => c.symbol);
+                const res = this.check3x3Win(flat);
+                if (res) this.subBoardWinners[b] = res;
+                return res;
+            }
+
+            checkMainBoardWin() { return this.check3x3Win(this.subBoardWinners); }
+
+            isValidMove(b, c) {
+                if (this.isSpectating) return false;
+                if (this.mode === 'online' && this.currentPlayerIndex !== this.localPlayerIndex) return false;
+                if (this.frozenBoards[b] > 0) return false;
+                if (this.selectedPower === 'wild') return this.subBoardWinners[b] === null;
+                if (this.activeSubBoard !== null && b !== this.activeSubBoard) return false;
+                if (this.subBoardWinners[b] !== null) return false;
+
+                const cell = this.board[b][c];
+                if (this.selectedPower === 'bomb') return cell.symbol !== null && !cell.shielded;
+                return cell.symbol === null;
+            }
+        }
+
+        class NetworkEngine {
+            constructor(controller) {
+                this.controller = controller;
+                this.peer = null;
+                this.conn = null;
+                this.isHost = false;
+            }
+
+            init(hostRoomId = null) {
+                return new Promise((resolve) => {
+                    const customId = hostRoomId || 'utt-' + Math.random().toString(36).substring(2, 8);
+                    this.peer = new Peer(customId);
+
+                    this.peer.on('open', (id) => {
+                        this.roomId = id;
+                        if (hostRoomId) {
+                            this.isHost = false;
+                            this.connectToHost(hostRoomId);
+                        } else {
+                            this.isHost = true;
+                        }
+                        resolve(id);
+                    });
+
+                    this.peer.on('connection', (conn) => {
+                        this.conn = conn;
+                        this.setupConnection();
+                    });
+                });
+            }
+
+            connectToHost(hostId) {
+                this.conn = this.peer.connect(hostId);
+                this.setupConnection();
+            }
+
+            setupConnection() {
+                this.conn.on('open', () => {
+                    this.controller.logAction("🔌 Peer Connected! Game Synchronized.");
+                    if (this.isHost) {
+                        this.sendState();
+                    }
+                });
+
+                this.conn.on('data', (data) => {
+                    if (data.type === 'MOVE') {
+                        this.controller.receiveRemoteMove(data);
+                    } else if (data.type === 'STATE_SYNC') {
+                        this.controller.syncGameState(data.state);
+                    }
+                });
+            }
+
+            sendMove(moveData) {
+                if (this.conn && this.conn.open) {
+                    this.conn.send({ type: 'MOVE', ...moveData });
+                }
+            }
+
+            sendState() {
+                if (this.conn && this.conn.open) {
+                    this.conn.send({ type: 'STATE_SYNC', state: this.controller.model });
+                }
+            }
+        }
+
+        class AIEngine {
+            constructor(model) { this.model = model; }
+            getAllValidMoves() {
+                const moves = [];
+                for (let b = 0; b < 9; b++) {
+                    for (let c = 0; c < 9; c++) {
+                        if (this.model.isValidMove(b, c)) moves.push({ boardIdx: b, cellIdx: c });
+                    }
+                }
+                return moves;
+            }
+            getBestMove() {
+                const moves = this.getAllValidMoves();
+                if (moves.length === 0) return null;
+                return moves[Math.floor(Math.random() * moves.length)];
+            }
+        }
+
+        class GameController {
+            constructor() {
+                this.model = new GameModel();
+                this.audio = new AudioEngine();
+                this.ai = new AIEngine(this.model);
+                this.net = new NetworkEngine(this);
+                this.bindUI();
+                this.initRender();
+                this.checkURLHash();
+            }
+
+            bindUI() {
+                document.getElementById('select-mode').addEventListener('change', (e) => {
+                    const mode = e.target.value;
+                    document.getElementById('ai-difficulty-container').classList.toggle('hidden', mode !== 'ai');
+                    document.getElementById('tournament-size-container').classList.toggle('hidden', mode !== 'tournament');
+                    document.getElementById('btn-create-online-link').classList.toggle('hidden', mode !== 'online');
+                    document.getElementById('btn-start-game').classList.toggle('hidden', mode === 'online');
+                });
+
+                document.getElementById('toggle-sound').addEventListener('change', (e) => {
+                    this.audio.enabled = e.target.checked;
+                });
+
+                document.getElementById('btn-start-game').addEventListener('click', () => this.startNewMatch());
+                document.getElementById('btn-create-online-link').addEventListener('click', () => this.hostOnlineMatch());
+                document.getElementById('btn-open-guide').addEventListener('click', () => this.openGuide());
+                document.getElementById('btn-in-game-guide').addEventListener('click', () => this.openGuide());
+                document.getElementById('btn-close-guide').addEventListener('click', () => this.closeGuide());
+
+                document.getElementById('btn-forfeit').addEventListener('click', () => this.showScreen('screen-landing'));
+                document.getElementById('btn-modal-restart').addEventListener('click', () => {
+                    document.getElementById('modal-gameover').classList.add('hidden');
+                    if (this.model.mode === 'tournament') {
+                        this.renderTournamentBracket();
+                        this.showScreen('screen-tournament');
+                    } else {
+                        this.showScreen('screen-landing');
+                    }
+                });
+
+                document.getElementById('btn-start-tourney-match').addEventListener('click', () => this.launchTourneyMatch());
+                document.getElementById('btn-share-tournament').addEventListener('click', () => this.shareTournamentLink());
+                document.getElementById('btn-share-room').addEventListener('click', () => this.shareRoomLink());
+
+                document.querySelectorAll('.btn-power').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const power = btn.dataset.power;
+                        const player = this.model.getCurrentPlayer();
+                        if (this.model.powerDecks[player.id][power] <= 0) return;
+
+                        this.model.selectedPower = (this.model.selectedPower === power) ? null : power;
+                        this.audio.playPower();
+                        this.updatePowerUI();
+                    });
+                });
+
+                document.getElementById('link-rate').addEventListener('click', () => document.getElementById('modal-rate').classList.remove('hidden'));
+                document.getElementById('btn-close-rate').addEventListener('click', () => document.getElementById('modal-rate').classList.add('hidden'));
+
+                const stars = document.querySelectorAll('#star-rating span');
+                stars.forEach(star => {
+                    star.addEventListener('click', () => {
+                        const val = star.dataset.star;
+                        stars.forEach(s => s.classList.toggle('active', s.dataset.star <= val));
+                        document.getElementById('rating-feedback').innerText = `Thanks for rating ${val}/5 Stars!`;
+                    });
+                });
+
+                document.getElementById('link-share').addEventListener('click', () => this.shareTournamentLink());
+            }
+
+            openGuide() { document.getElementById('modal-guide').classList.remove('hidden'); }
+            closeGuide() { document.getElementById('modal-guide').classList.add('hidden'); }
+
+            showScreen(id) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+                document.getElementById(id).classList.remove('hidden');
+            }
+
+            async hostOnlineMatch() {
+                const powers = document.getElementById('toggle-powers').checked;
+                this.model.setupMode('online', 'medium', powers, 4);
+                this.model.localPlayerIndex = 0; // Host is Player 1 (X)
+                
+                const roomId = await this.net.init();
+                window.location.hash = `room=${roomId}`;
+                this.shareRoomLink();
+                this.launchGameView();
+                document.getElementById('btn-share-room').classList.remove('hidden');
+            }
+
+            async joinOnlineMatch(roomId) {
+                const powers = document.getElementById('toggle-powers').checked;
+                this.model.setupMode('online', 'medium', powers, 4);
+                this.model.localPlayerIndex = 1; // Client is Player 2 (O)
+                
+                await this.net.init(roomId);
+                this.launchGameView();
+                this.logAction("Joined online room. Waiting for host...");
+            }
+
+            shareRoomLink() {
+                const shareUrl = window.location.href;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(shareUrl);
+                    alert("Invite link copied to clipboard! Send it to your friend.");
+                } else {
+                    alert(`Shareable Room Link: ${shareUrl}`);
+                }
+            }
+
+            startNewMatch() {
+                const mode = document.getElementById('select-mode').value;
+                const aiDiff = document.getElementById('select-ai-diff').value;
+                const powers = document.getElementById('toggle-powers').checked;
+                const tourneySize = document.getElementById('select-tourney-size').value;
+
+                this.model.setupMode(mode, aiDiff, powers, tourneySize);
+
+                if (mode === 'tournament') {
+                    this.updateURLState();
+                    this.renderTournamentBracket();
+                    this.showScreen('screen-tournament');
+                } else {
+                    this.launchGameView();
+                }
+            }
+
+            launchTourneyMatch() {
+                const t = this.model.tournament;
+                const currentRoundMatches = t.matches[t.currentRound];
+                const activeMatch = currentRoundMatches.find(m => m.status === 'ongoing' || m.winner === null);
+
+                if (!activeMatch) return;
+
+                activeMatch.status = 'ongoing';
+                t.activeMatch = activeMatch;
+                this.model.isSpectating = false;
+                this.model.players[0].name = activeMatch.p1;
+                this.model.players[1].name = activeMatch.p2;
+
+                this.model.board = Array(9).fill(null).map(() => Array(9).fill(null).map(() => ({ symbol: null, shielded: false })));
+                this.model.subBoardWinners = Array(9).fill(null);
+                this.model.frozenBoards = Array(9).fill(0);
+                this.model.activeSubBoard = null;
+                this.model.currentPlayerIndex = 0;
+                this.model.initPowerDecks();
+
+                this.launchGameView();
+            }
+
+            spectateMatch(matchId) {
+                this.model.isSpectating = true;
+                const t = this.model.tournament;
+                let foundMatch = null;
+                t.matches.forEach(r => r.forEach(m => { if (m.id === matchId) foundMatch = m; }));
+
+                if (foundMatch) {
+                    this.model.players[0].name = foundMatch.p1;
+                    this.model.players[1].name = foundMatch.p2;
+                    this.launchGameView();
+                    document.getElementById('spectate-banner').classList.remove('hidden');
+                    this.logAction(`Now spectating live match: ${foundMatch.p1} vs ${foundMatch.p2}`);
+                }
+            }
+
+            launchGameView() {
+                document.getElementById('spectate-banner').classList.add('hidden');
+                this.renderBoard();
+                this.updateHUD();
+                this.showScreen('screen-game');
+                this.logAction("Match loaded. Ready for battle!");
+            }
+
+            initRender() {
+                const mainBoard = document.getElementById('main-board');
+                mainBoard.innerHTML = '';
+                for (let b = 0; b < 9; b++) {
+                    const subBoard = document.createElement('div');
+                    subBoard.className = 'sub-board';
+                    subBoard.dataset.board = b;
+                    for (let c = 0; c < 9; c++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.board = b; cell.dataset.cell = c;
+                        cell.addEventListener('click', () => this.handleCellClick(b, c));
+                        subBoard.appendChild(cell);
+                    }
+                    mainBoard.appendChild(subBoard);
+                }
+            }
+
+            renderBoard() {
+                const subBoards = document.querySelectorAll('.sub-board');
+                subBoards.forEach((sb, b) => {
+                    const isFrozen = this.model.frozenBoards[b] > 0;
+                    const isWon = this.model.subBoardWinners[b] !== null;
+
+                    let isActive = false;
+                    if (!isWon && !isFrozen && !this.model.isSpectating) {
+                        if (this.model.selectedPower === 'wild') isActive = true;
+                        else if (this.model.activeSubBoard === null || this.model.activeSubBoard === b) isActive = true;
+                    }
+
+                    sb.classList.toggle('active', isActive);
+                    sb.classList.toggle('frozen', isFrozen);
+
+                    const existingOverlay = sb.querySelector('.sub-board-overlay');
+                    if (existingOverlay) existingOverlay.remove();
+
+                    if (isWon) {
+                        const winner = this.model.subBoardWinners[b];
+                        const overlay = document.createElement('div');
+                        overlay.className = `sub-board-overlay won-${winner}`;
+                        overlay.innerText = winner;
+                        sb.appendChild(overlay);
+                    }
+
+                    const cells = sb.querySelectorAll('.cell');
+                    cells.forEach((cellEl, c) => {
+                        const cellData = this.model.board[b][c];
+                        cellEl.innerText = cellData.symbol || '';
+                        cellEl.className = 'cell';
+                        if (cellData.symbol) cellEl.classList.add(`cell-${cellData.symbol}`, 'occupied');
+                        if (cellData.shielded) cellEl.classList.add('shielded');
+                    });
+                });
+            }
+
+            handleCellClick(b, c, isRemote = false) {
+                if (!isRemote && !this.model.isValidMove(b, c)) return;
+
+                const player = this.model.getCurrentPlayer();
+                const power = this.model.selectedPower;
+
+                if (!isRemote && this.model.mode === 'online') {
+                    this.net.sendMove({ boardIdx: b, cellIdx: c, power: power });
+                }
+
+                if (power) {
+                    this.model.powerDecks[player.id][power]--;
+                    this.logAction(`${player.name} used power: <span class="log-highlight">${power.toUpperCase()}</span>`);
+                }
+
+                if (power === 'bomb') {
+                    this.model.board[b][c].symbol = null;
+                    this.logAction(`${player.name} bombed cell at [Board ${b + 1}, Cell ${c + 1}]`);
+                } else if (power === 'freeze') {
+                    this.model.frozenBoards[b] = 2;
+                    this.logAction(`${player.name} froze Sub-Board ${b + 1}`);
+                } else if (power === 'shield') {
+                    this.model.board[b][c].symbol = player.symbol;
+                    this.model.board[b][c].shielded = true;
+                    this.logAction(`${player.name} placed a shielded token`);
+                } else {
+                    this.model.board[b][c].symbol = player.symbol;
+                }
+
+                this.audio.playMove();
+
+                const subWinner = this.model.updateSubBoardState(b);
+                if (subWinner && subWinner !== 'T') {
+                    this.logAction(`${player.name} conquered Sub-Board ${b + 1}!`);
+                }
+
+                const mainWinner = this.model.checkMainBoardWin();
+                if (mainWinner) {
+                    this.handleGameOver(mainWinner);
+                    return;
+                }
+
+                if (this.model.subBoardWinners[c] !== null || this.model.frozenBoards[c] > 0) {
+                    this.model.activeSubBoard = null;
+                } else {
+                    this.model.activeSubBoard = c;
+                }
+
+                this.model.nextTurn();
+                this.renderBoard();
+                this.updateHUD();
+
+                if (this.model.mode === 'ai' && this.model.getCurrentPlayer().id === 1) {
+                    setTimeout(() => this.triggerAIMove(), 500);
+                }
+            }
+
+            receiveRemoteMove(data) {
+                this.model.selectedPower = data.power;
+                this.handleCellClick(data.boardIdx, data.cellIdx, true);
+            }
+
+            syncGameState(state) {
+                Object.assign(this.model, state);
+                this.renderBoard();
+                this.updateHUD();
+            }
+
+            triggerAIMove() {
+                const move = this.ai.getBestMove();
+                if (move) this.handleCellClick(move.boardIdx, move.cellIdx);
+            }
+
+            updateHUD() {
+                const player = this.model.getCurrentPlayer();
+                const badge = document.getElementById('player-badge');
+                badge.style.backgroundColor = player.color;
+                
+                let turnSuffix = "";
+                if (this.model.mode === 'online') {
+                    turnSuffix = (this.model.currentPlayerIndex === this.model.localPlayerIndex) ? " (Your Turn)" : " (Waiting)";
+                }
+
+                document.getElementById('turn-text').innerText = `${player.name}'s Turn (${player.symbol})${turnSuffix}`;
+                this.updatePowerUI();
+            }
+
+            updatePowerUI() {
+                const container = document.getElementById('powers-deck-container');
+                if (!this.model.powersEnabled || this.model.isSpectating) {
+                    container.classList.add('hidden');
+                    return;
+                }
+                container.classList.remove('hidden');
+
+                const player = this.model.getCurrentPlayer();
+                const deck = this.model.powerDecks[player.id];
+
+                ['bomb', 'freeze', 'wild', 'shield'].forEach(p => {
+                    const btn = container.querySelector(`[data-power="${p}"]`);
+                    const countBadge = document.getElementById(`count-${p}`);
+                    const remaining = deck[p];
+
+                    countBadge.innerText = remaining;
+                    btn.disabled = remaining <= 0 || (this.model.mode === 'online' && this.model.currentPlayerIndex !== this.model.localPlayerIndex);
+                    btn.classList.toggle('active', this.model.selectedPower === p);
+                });
+            }
+
+            handleGameOver(winner) {
+                this.audio.playWin();
+                const title = document.getElementById('modal-winner-title');
+                const text = document.getElementById('modal-winner-text');
+
+                if (winner === 'T') {
+                    title.innerText = "STALEMATE!";
+                    text.innerText = "The match ended in a tie.";
+                } else {
+                    const winningPlayer = this.model.players.find(p => p.symbol === winner) || this.model.getCurrentPlayer();
+                    title.innerText = "VICTORY!";
+                    text.innerText = `${winningPlayer.name} wins the match!`;
+
+                    if (this.model.mode === 'tournament' && this.model.tournament.activeMatch) {
+                        this.model.tournament.activeMatch.winner = winningPlayer.name;
+                        this.model.tournament.activeMatch.status = 'completed';
+                        this.updateTournamentProgress();
+                        this.updateURLState();
+                    }
+                }
+
+                document.getElementById('modal-gameover').classList.remove('hidden');
+            }
+
+            updateTournamentProgress() {
+                const t = this.model.tournament;
+                const currentMatches = t.matches[t.currentRound];
+                const allFinished = currentMatches.every(m => m.winner !== null);
+
+                if (allFinished) {
+                    const winners = currentMatches.map(m => m.winner);
+                    if (winners.length > 1) {
+                        const nextRound = [];
+                        for (let i = 0; i < winners.length; i += 2) {
+                            nextRound.push({ id: `R${t.currentRound + 2}M${i/2}`, p1: winners[i], p2: winners[i+1], winner: null, status: i === 0 ? 'ongoing' : 'upcoming' });
+                        }
+                        t.matches.push(nextRound);
+                        t.currentRound++;
+                    }
+                } else {
+                    const nextMatch = currentMatches.find(m => m.winner === null);
+                    if (nextMatch) nextMatch.status = 'ongoing';
+                }
+            }
+
+            renderTournamentBracket() {
+                const container = document.getElementById('bracket-display');
+                container.innerHTML = '';
+                const t = this.model.tournament;
+
+                const roundLabels = (t.size === 16) 
+                    ? ['Round of 16', 'Quarterfinals', 'Semifinals', 'Finals']
+                    : ['Round 1', 'Semifinals', 'Finals'];
+
+                document.getElementById('tourney-subtitle').innerText = (t.size === 16) 
+                    ? "🏆 World Cup Edition - 16 Player Bracket" 
+                    : "Tournament Bracket & Live Showcase";
+
+                t.matches.forEach((round, rIdx) => {
+                    const roundEl = document.createElement('div');
+                    roundEl.className = 'bracket-round';
+
+                    const roundHeader = document.createElement('div');
+                    roundHeader.style.cssText = 'font-size: 0.75rem; font-weight: bold; color: var(--color-gold); text-align: center; margin-bottom: 5px;';
+                    roundHeader.innerText = roundLabels[rIdx] || `Round ${rIdx + 1}`;
+                    roundEl.appendChild(roundHeader);
+
+                    round.forEach(m => {
+                        const card = document.createElement('div');
+                        card.className = `matchup-card ${m.status === 'ongoing' ? 'ongoing' : ''}`;
+                        
+                        const spectateBtn = (m.status === 'ongoing') ? `<button class="btn-spectate" onclick="app.spectateMatch('${m.id}')">👁️ Spectate</button>` : '';
+
+                        card.innerHTML = `
+                            <div class="match-status-tag">
+                                <span>${m.status === 'ongoing' ? '🔴 LIVE' : m.status === 'completed' ? 'FINAL' : 'UPCOMING'}</span>
+                                ${spectateBtn}
+                            </div>
+                            <div class="matchup-team ${m.winner === m.p1 ? 'winner' : ''}">${m.p1} ${m.winner === m.p1 ? '🏆' : ''}</div>
+                            <div class="matchup-team ${m.winner === m.p2 ? 'winner' : ''}">${m.p2} ${m.winner === m.p2 ? '🏆' : ''}</div>
+                        `;
+                        roundEl.appendChild(card);
+                    });
+
+                    container.appendChild(roundEl);
+                });
+
+                const currentRoundMatches = t.matches[t.currentRound];
+                const nextMatch = currentRoundMatches ? currentRoundMatches.find(m => m.winner === null) : null;
+                const btn = document.getElementById('btn-start-tourney-match');
+                btn.disabled = !nextMatch;
+                btn.innerText = !nextMatch ? "Tournament Complete!" : "Play Next Match";
+            }
+
+            updateURLState() {
+                if (this.model.mode === 'tournament' && this.model.tournament) {
+                    const jsonStr = JSON.stringify(this.model.tournament);
+                    const encoded = btoa(jsonStr);
+                    window.location.hash = `tournament=${encoded}`;
+                }
+            }
+
+            checkURLHash() {
+                const hash = window.location.hash;
+                if (hash.includes('room=')) {
+                    const roomId = hash.split('room=')[1];
+                    this.joinOnlineMatch(roomId);
+                } else if (hash.includes('tournament=')) {
+                    try {
+                        const encoded = hash.split('tournament=')[1];
+                        const jsonStr = atob(encoded);
+                        const tourneyData = JSON.parse(jsonStr);
+                        this.model.mode = 'tournament';
+                        this.model.tournament = tourneyData;
+                        this.renderTournamentBracket();
+                        this.showScreen('screen-tournament');
+                    } catch (e) {
+                        console.warn('Could not parse tournament state from URL hash.');
+                    }
+                }
+            }
+
+            shareTournamentLink() {
+                this.updateURLState();
+                const shareUrl = window.location.href;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(shareUrl);
+                    alert("Tournament Bracket Link copied to clipboard!");
+                } else {
+                    alert(`Shareable Link: ${shareUrl}`);
+                }
+            }
+
+            logAction(msg) {
+                const log = document.getElementById('action-log');
+                const entry = document.createElement('p');
+                entry.innerHTML = `> ${msg}`;
+                log.appendChild(entry);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            window.app = new GameController();
+        });
+    </script>
+</body>
+</html>
