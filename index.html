@@ -4,27 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ultimate Tic Tac Toe: World Cup & Online Edition</title>
-    <!-- PeerJS for WebRTC Online Multiplayer -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
         :root {
             --bg-base: #0B0E14;
             --bg-card: rgba(22, 27, 34, 0.75);
             --bg-card-border: rgba(255, 255, 255, 0.1);
-            
             --color-p1: #FF3366;
             --color-p2: #00E5FF;
             --color-p3: #FF9900;
             --color-p4: #A855F7;
-            
             --color-gold: #FFD700;
             --color-text-main: #F0F6FC;
             --color-text-muted: #8B949E;
-            
             --glow-p1: 0 0 15px rgba(255, 51, 102, 0.6);
             --glow-p2: 0 0 15px rgba(0, 229, 255, 0.6);
             --glow-gold: 0 0 15px rgba(255, 215, 0, 0.6);
-            
             --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             --transition-speed: 0.25s;
         }
@@ -336,15 +331,37 @@
             font-size: 0.85rem; border-radius: 6px; margin-bottom: 10px; width: 100%;
         }
 
+        /* Wheel Modal Specific CSS */
+        .wheel-wrapper {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 10px auto;
+        }
+        .wheel-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 22px solid var(--color-gold);
+            z-index: 10;
+        }
+        #wheel-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid var(--color-gold);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
         footer {
             width: 100%; margin-top: 15px; padding: 10px 0; text-align: center;
             font-size: 0.8rem; color: var(--color-text-muted); display: flex;
             flex-direction: column; align-items: center; gap: 8px;
         }
-
-        .footer-links { display: flex; gap: 15px; }
-        .footer-link { color: var(--color-text-main); text-decoration: none; cursor: pointer; opacity: 0.8; }
-        .footer-link:hover { opacity: 1; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -420,6 +437,7 @@
                 <div id="bracket-display" class="bracket-container"></div>
                 <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
                     <button id="btn-tourney-back" class="btn btn-secondary">🔙 Main Menu</button>
+                    <button id="btn-spin-wheel-tourney" class="btn btn-secondary">🎡 Spin for Player Slot</button>
                     <button id="btn-start-tourney-match" class="btn btn-primary" style="flex: 1;">Play Next Match</button>
                     <button id="btn-share-tournament" class="btn btn-secondary">🔗 Share Bracket Link</button>
                 </div>
@@ -514,7 +532,27 @@
         </div>
     </div>
 
-    <!-- MODAL 3: GAME OVER -->
+    <!-- MODAL 3: SPIN THE WHEEL -->
+    <div id="modal-wheel" class="modal-overlay hidden">
+        <div class="glass-panel modal-content" style="text-align: center; max-width: 380px;">
+            <h3 class="main-title" style="font-size: 1.4rem;">Spin the Slot Wheel</h3>
+            <p style="font-size: 0.8rem; color: var(--color-text-muted);" id="wheel-desc">Spin to get assigned an open slot or country!</p>
+            
+            <div class="wheel-wrapper">
+                <div class="wheel-pointer"></div>
+                <canvas id="wheel-canvas" width="260" height="260"></canvas>
+            </div>
+
+            <div id="wheel-result" style="font-size: 1.1rem; font-weight: bold; color: var(--color-gold); min-height: 24px;"></div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btn-trigger-spin" class="btn btn-primary" style="flex: 1;">🎰 SPIN WHEEL</button>
+                <button id="btn-close-wheel" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: GAME OVER -->
     <div id="modal-gameover" class="modal-overlay hidden">
         <div class="glass-panel modal-content" style="text-align: center;">
             <h2 id="modal-winner-title" class="main-title" style="font-size: 1.8rem;">VICTORY!</h2>
@@ -615,10 +653,17 @@
                 ];
 
                 const names = (numPlayers === 16) 
-                    ? countries 
+                    ? [...countries]
                     : Array.from({length: numPlayers}, (_, i) => `Player ${i + 1}`);
 
-                this.tournament = { size: numPlayers, currentRound: 0, matches: [], activeMatch: null };
+                this.tournament = { 
+                    size: numPlayers, 
+                    currentRound: 0, 
+                    matches: [], 
+                    activeMatch: null,
+                    wheelPool: [...names] 
+                };
+
                 const round1 = [];
                 for (let i = 0; i < numPlayers; i += 2) {
                     round1.push({ id: `R1M${i/2}`, p1: names[i], p2: names[i+1], winner: null, status: 'upcoming' });
@@ -748,6 +793,8 @@
                 this.audio = new AudioEngine();
                 this.ai = new AIEngine(this.model);
                 this.net = new NetworkEngine(this);
+                this.wheelAngle = 0;
+                this.isSpinning = false;
                 this.bindUI();
                 this.initRender();
                 this.checkURLHash();
@@ -773,6 +820,10 @@
                 document.getElementById('btn-close-guide').addEventListener('click', () => this.closeGuide());
 
                 document.getElementById('btn-tourney-back').addEventListener('click', () => this.showScreen('screen-landing'));
+                document.getElementById('btn-spin-wheel-tourney').addEventListener('click', () => this.openWheelModal());
+                document.getElementById('btn-trigger-spin').addEventListener('click', () => this.spinWheel());
+                document.getElementById('btn-close-wheel').addEventListener('click', () => document.getElementById('modal-wheel').classList.add('hidden'));
+
                 document.getElementById('btn-forfeit').addEventListener('click', () => {
                     if (this.model.mode === 'tournament') {
                         this.renderTournamentBracket();
@@ -840,6 +891,103 @@
                 toast.innerText = msg;
                 toast.classList.remove('hidden');
                 setTimeout(() => toast.classList.add('hidden'), 2500);
+            }
+
+            openWheelModal() {
+                if (!this.model.tournament || !this.model.tournament.wheelPool) return;
+                document.getElementById('wheel-result').innerText = '';
+                document.getElementById('modal-wheel').classList.remove('hidden');
+                this.drawWheel();
+            }
+
+            drawWheel() {
+                const canvas = document.getElementById('wheel-canvas');
+                const ctx = canvas.getContext('2d');
+                const pool = this.model.tournament.wheelPool;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (!pool || pool.length === 0) {
+                    ctx.fillStyle = '#8B949E';
+                    ctx.font = 'bold 16px var(--font-family)';
+                    ctx.textAlign = 'center';
+                    ctx.fillText("All Slots Taken!", canvas.width / 2, canvas.height / 2);
+                    return;
+                }
+
+                const numSlices = pool.length;
+                const sliceAngle = (2 * Math.PI) / numSlices;
+                const colors = ['#FF3366', '#00E5FF', '#FF9900', '#A855F7', '#38BDF8', '#FFD700'];
+
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(this.wheelAngle);
+
+                for (let i = 0; i < numSlices; i++) {
+                    const angle = i * sliceAngle;
+                    ctx.beginPath();
+                    ctx.fillStyle = colors[i % colors.length];
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, canvas.width / 2, angle, angle + sliceAngle);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Text
+                    ctx.save();
+                    ctx.rotate(angle + sliceAngle / 2);
+                    ctx.fillStyle = '#000000';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(pool[i], canvas.width / 2 - 15, 4);
+                    ctx.restore();
+                }
+                ctx.restore();
+            }
+
+            spinWheel() {
+                const pool = this.model.tournament ? this.model.tournament.wheelPool : null;
+                if (!pool || pool.length === 0 || this.isSpinning) return;
+
+                this.isSpinning = true;
+                document.getElementById('btn-trigger-spin').disabled = true;
+                document.getElementById('wheel-result').innerText = 'Spinning...';
+
+                const targetIndex = Math.floor(Math.random() * pool.length);
+                const numSlices = pool.length;
+                const sliceAngle = (2 * Math.PI) / numSlices;
+                
+                // Align pointer (top center: 3PI/2) to winning slice center
+                const targetAngle = (3 * Math.PI / 2) - (targetIndex * sliceAngle + sliceAngle / 2);
+                const extraSpins = 5 * 2 * Math.PI;
+                const totalRotation = this.wheelAngle + extraSpins + (targetAngle - (this.wheelAngle % (2 * Math.PI)));
+
+                const startTime = performance.now();
+                const duration = 3500;
+
+                const animate = (now) => {
+                    const elapsed = now - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeOut = 1 - Math.pow(1 - progress, 3);
+
+                    this.wheelAngle = easeOut * totalRotation;
+                    this.drawWheel();
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        this.isSpinning = false;
+                        document.getElementById('btn-trigger-spin').disabled = false;
+                        const selectedItem = pool[targetIndex];
+                        document.getElementById('wheel-result').innerText = `🎉 Slot Chosen: ${selectedItem}`;
+                        this.audio.playWin();
+
+                        // Permanently remove assigned choice from remaining wheel pool
+                        pool.splice(targetIndex, 1);
+                        this.updateURLState();
+                        setTimeout(() => this.drawWheel(), 1200);
+                    }
+                };
+
+                requestAnimationFrame(animate);
             }
 
             async hostOnlineMatch() {
