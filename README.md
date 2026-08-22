@@ -4,13 +4,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![WebRTC](https://img.shields.io/badge/Networking-PeerJS%20WebRTC-00E5FF?style=for-the-badge)](https://peerjs.com/)
 
-A feature-packed, real-time multiplayer implementation of **Ultimate Tic Tac Toe** built with vanilla JavaScript, CSS3 glassmorphism design, and WebRTC for serverless peer-to-peer multiplayer.
+A modern, web-based implementation of **Ultimate Tic Tac Toe** featuring a World Cup tournament engine, real-time WebRTC multiplayer, dynamic power-up decks, and slot allocation via an interactive wheel.
 
 ---
 
-## 🎮 Play Live in Browser
-
-You can play the game directly inside your browser below or visit the full page on [Itch.io](https://itch.io/embed-upload/18904951?color=333333).
+## 🎮 Live Play Embed
 
 <iframe src="https://itch.io/embed-upload/18904951?color=333333" allowfullscreen="" width="960" height="720" frameborder="0">
   <a href="https://itch.io/embed-upload/18904951?color=333333">Play Ultimate Tic Tac Toe: World Cup Edition on Itch.io</a>
@@ -18,37 +16,91 @@ You can play the game directly inside your browser below or visit the full page 
 
 ---
 
-## ✨ Features
+## 🕹️ Game Modes
 
-- 🎡 **Spin-the-Wheel Slot Allocation:** Integrated wheel mechanic assigns slots/countries fairly. Players are locked to their assigned pick and prevented from spinning twice.
-- 🏆 **16-Player World Cup Tournament:** Knockout bracket system featuring global teams. Includes turn-enforcement queues (players must wait for their designated bout).
-- 🌐 **Serverless P2P Online Multiplayer:** Instant room links powered by **PeerJS (WebRTC)** for 1v1 online matches without dedicated backend servers.
-- ⚡ **Power-Up Tactical Arsenal:**
-  - 💣 **Bomb:** Destroys unshielded opponent marks in active cells.
-  - ❄️ **Freeze:** Locks a sub-board for 1 turn.
-  - 🌀 **Wild:** Allows mark placement in any open sub-board.
-  - 🛡️ **Shield:** Protects placed marks against bombs.
-- 🤖 **Built-in AI Engine:** Minimax-inspired strategic AI across Easy, Medium, and Hard difficulty levels.
-- 👁️ **Live Spectator Mode:** Share tournament links to allow friends to spectate live matches in real time.
-- 🔊 **Web Audio API:** Custom synthesized sound effects for moves, power-ups, and victory sequence without external assets.
+![Game Modes Selection Screen](assets/game-modes.png)
+
+- **1v1 Local Hotseat:** Two players take turns on the same screen.
+- **1v1 Online Link (WebRTC):** Direct peer-to-peer room connections generated via link sharing without backend server dependencies.
+- **1v1 vs. AI Engine:** Single-player challenge powered by an adaptive minimax decision engine.
+- **2v2 Tag Team (4P):** Four players paired in teams, rotating turns dynamically within active sub-boards.
+- **Tournament Bracket:** A 16-player knockout tournament system featuring country slot assignments and queue enforcement.
 
 ---
 
-## 🛠️ Tech Stack
+## 🎯 How to Play
 
-- **Frontend:** HTML5, CSS3 (Glassmorphism, CSS Grid & Flexbox)
-- **Logic:** Vanilla JavaScript (ES6+ Classes)
-- **Networking:** PeerJS (WebRTC Peer-to-Peer DataChannels)
-- **Audio:** Native Web Audio API Synthesizer
+![How to Play Guide Overlay](assets/how-to-play.png)
+
+### Core Objective
+
+Win 3 adjacent sub-boards in a row (horizontal, vertical, or diagonal) to capture the overall main board.
+
+### Board Movement Logic
+
+Your move dictates where your opponent must play next. For example, placing a token in cell `#5` of any sub-board forces your opponent to make their next move inside **Sub-Board #5**.
 
 ---
 
-## 🚀 Local Setup & Installation
+## 🎮 Gameplay Mechanics
 
-Since the project uses pure client-side web technologies, no heavy setup or package installations are required.
+![Interactive Game Board and Power-Up Bar](assets/gameplay.png)
 
-1. **Clone the repository:**
+---
+
+## ⚡ Power-Up Arsenal (1 Use Each)
+
+| Power-Up   | Icon | Function                                                          |
+| :--------- | :--: | :---------------------------------------------------------------- |
+| **Bomb**   |  💣  | Destroys any unshielded opponent token in the active sub-board.   |
+| **Freeze** |  ❄️  | Locks the target sub-board, preventing moves for 1 turn.          |
+| **Wild**   |  🌀  | Grants freedom to place a mark in ANY open sub-board.             |
+| **Shield** |  🛡️  | Places a token that is completely protected against bomb attacks. |
+
+---
+
+## 🎡 Spin the Slot Wheel
+
+![Tournament Slot Selection Wheel Overlay](assets/spin-wheel.png)
+
+In **Tournament Mode**, slot distribution is handled via an interactive country selector:
+
+1. Players open the **Slot Wheel** interface.
+2. Spin the wheel to get assigned an open country or slot (e.g., Belgium, Brazil, Japan).
+3. The assigned slot is locked to prevent double-spinning, and the match bracket updates automatically.
+
+---
+
+## 🚀 Quick Start & Local Setup
+
+Since this game is built as a self-contained single-page web application, no heavy installation or `npm install` is required!
+
+1. **Clone the repository**:
+
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git)
-   cd YOUR_REPO_NAME
+   git clone [https://github.com/Vimal9RAM-NAP/ultimate-tic-tac-toe.git](https://github.com/Vimal9RAM-NAP/ultimate-tic-tac-toe.git)
+   cd ultimate-tic-tac-toe
    ```
+
+2. **Run locally**:
+
+- Open `index.html` directly in any web browser.
+- Alternatively, run a local server for WebRTC multiplayer testing:
+
+```bash
+npx serve .
+```
+
+## 📜 How to Play Summary
+
+1. Objective: Win 3 sub-boards in a row (horizontal, vertical, or diagonal) to win the main board.
+2. Movement Rule: The cell index you pick in an active sub-board dictates which sub-board your opponent is forced to play on next.
+3. Tournament Queue: In tournament mode, spin the wheel to claim your slot. Once assigned, wait for your bout to be active before entering the arena!
+
+## 👤 Author & License
+
+Developed by Odd Jobs Dev (Vimal Ram) for Itch.io.
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
