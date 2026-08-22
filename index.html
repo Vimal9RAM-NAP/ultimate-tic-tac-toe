@@ -616,6 +616,9 @@
                 this.tournament = null;
                 this.isSpectating = false;
                 this.localPlayerIndex = 0;
+                
+                // Track the user's localized assignment from the Spin Wheel
+                this.assignedTourneyPlayer = null; 
             }
 
             initPowerDecks() {
@@ -700,7 +703,11 @@
 
             isValidMove(b, c) {
                 if (this.isSpectating) return false;
+                
+                // Block players making moves for the opponent in restricted modes
                 if (this.mode === 'online' && this.currentPlayerIndex !== this.localPlayerIndex) return false;
+                if (this.mode === 'tournament' && this.assignedTourneyPlayer && this.currentPlayerIndex !== this.localPlayerIndex) return false;
+                
                 if (this.frozenBoards[b] > 0) return false;
                 if (this.selectedPower === 'wild') return this.subBoardWinners[b] === null;
                 if (this.activeSubBoard !== null && b !== this.activeSubBoard) return false;
@@ -895,7 +902,13 @@
 
             openWheelModal() {
                 if (!this.model.tournament || !this.model.tournament.wheelPool) return;
-                document.getElementById('wheel-result').innerText = '';
+                
+                if (this.model.assignedTourneyPlayer) {
+                    document.getElementById('wheel-result').innerText = `You are already assigned: ${this.model.assignedTourneyPlayer}`;
+                } else {
+                    document.getElementById('wheel-result').innerText = '';
+                }
+
                 document.getElementById('modal-wheel').classList.remove('hidden');
                 this.drawWheel();
             }
@@ -944,6 +957,11 @@
             }
 
             spinWheel() {
+                if (this.model.assignedTourneyPlayer) {
+                    this.showToast("you can't spin again");
+                    return;
+                }
+
                 const pool = this.model.tournament ? this.model.tournament.wheelPool : null;
                 if (!pool || pool.length === 0 || this.isSpinning) return;
 
@@ -977,6 +995,9 @@
                         this.isSpinning = false;
                         document.getElementById('btn-trigger-spin').disabled = false;
                         const selectedItem = pool[targetIndex];
+                        
+                        // Lock player to their chosen slot locally
+                        this.model.assignedTourneyPlayer = selectedItem;
                         document.getElementById('wheel-result').innerText = `🎉 Slot Chosen: ${selectedItem}`;
                         this.audio.playWin();
 
@@ -1040,11 +1061,26 @@
 
                 if (!activeMatch) return;
 
+                // Enforce that players MUST spin before entering
+                if (!this.model.assignedTourneyPlayer) {
+                    this.showToast("Please spin the wheel first to get your player assignment!");
+                    return;
+                }
+
+                // Enforce wait-your-turn queue
+                if (activeMatch.p1 !== this.model.assignedTourneyPlayer && activeMatch.p2 !== this.model.assignedTourneyPlayer) {
+                    this.showToast("your bout hasn't reached yet wait for it");
+                    return;
+                }
+
                 activeMatch.status = 'ongoing';
                 t.activeMatch = activeMatch;
                 this.model.isSpectating = false;
                 this.model.players[0].name = activeMatch.p1;
                 this.model.players[1].name = activeMatch.p2;
+
+                // Restrict control to their chosen player slot only
+                this.model.localPlayerIndex = (activeMatch.p1 === this.model.assignedTourneyPlayer) ? 0 : 1;
 
                 this.model.board = Array(9).fill(null).map(() => Array(9).fill(null).map(() => ({ symbol: null, shielded: false })));
                 this.model.subBoardWinners = Array(9).fill(null);
@@ -1232,13 +1268,17 @@
                 const player = this.model.getCurrentPlayer();
                 const deck = this.model.powerDecks[player.id];
 
+                // Block powers use if it's restricted (Online OR Tournament)
+                const isRestricted = (this.model.mode === 'online' || (this.model.mode === 'tournament' && this.model.assignedTourneyPlayer)) 
+                                      && this.model.currentPlayerIndex !== this.model.localPlayerIndex;
+
                 ['bomb', 'freeze', 'wild', 'shield'].forEach(p => {
                     const btn = container.querySelector(`[data-power="${p}"]`);
                     const countBadge = document.getElementById(`count-${p}`);
                     const remaining = deck[p];
 
                     countBadge.innerText = remaining;
-                    btn.disabled = remaining <= 0 || (this.model.mode === 'online' && this.model.currentPlayerIndex !== this.model.localPlayerIndex);
+                    btn.disabled = remaining <= 0 || isRestricted;
                     btn.classList.toggle('active', this.model.selectedPower === p);
                 });
             }
