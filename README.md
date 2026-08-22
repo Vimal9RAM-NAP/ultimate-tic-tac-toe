@@ -85,9 +85,9 @@ Since this game is built as a self-contained single-page web application, no hea
 - Open `index.html` directly in any web browser.
 - Alternatively, run a local server for WebRTC multiplayer testing:
 
-```bash
-npx serve .
-```
+  ```bash
+  npx serve .
+  ```
 
 ## 📜 How to Play Summary
 
