@@ -8,11 +8,9 @@ A modern, web-based implementation of **Ultimate Tic Tac Toe** featuring a World
 
 ---
 
-## 🎮 Live Play Embed
+## 🎮 Play Live in Browser
 
-<iframe src="https://itch.io/embed-upload/18904951?color=333333" allowfullscreen="" width="960" height="720" frameborder="0">
-  <a href="https://itch.io/embed-upload/18904951?color=333333">Play Ultimate Tic Tac Toe: World Cup Edition on Itch.io</a>
-</iframe>
+[![Play Ultimate Tic Tac Toe on Itch.io](https://img.shields.io/badge/▶️_Click_Here_To_Play_Live_On_Itch.io-FA5C5C?style=for-the-badge&logo=itchdotio&logoColor=white)](https://itch.io/embed-upload/18904951?color=333333)
 
 ---
 
