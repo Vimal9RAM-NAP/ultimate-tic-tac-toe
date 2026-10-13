@@ -69,7 +69,7 @@ In **Tournament Mode**, slot distribution is handled via an interactive country 
 
 ---
 
-## 🚀 Quick Start & Local Setup
+##  Quick Start & Local Setup
 
 Since this game is built as a self-contained single-page web application, no heavy installation or `npm install` is required!
 
