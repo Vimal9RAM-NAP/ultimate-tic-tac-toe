@@ -1,4 +1,4 @@
-# 🏆 Ultimate Tic Tac Toe: World Cup & Online Edition
+#  Ultimate Tic Tac Toe: World Cup & Online Edition
 
 [![Play on Itch.io](https://img.shields.io/badge/Play%20Now-Itch.io-FA5C5C?style=for-the-badge&logo=itchdotio&logoColor=white)](https://itch.io/embed-upload/18904951?color=333333)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
@@ -8,13 +8,13 @@ A modern, web-based implementation of **Ultimate Tic Tac Toe** featuring a World
 
 ---
 
-## 🎮 Play Live in Browser
+##  Play Live in Browser
 
 [![Play Ultimate Tic Tac Toe on Itch.io](https://img.shields.io/badge/▶️_Click_Here_To_Play_Live_On_Itch.io-FA5C5C?style=for-the-badge&logo=itchdotio&logoColor=white)](https://itch.io/embed-upload/18904951?color=333333)
 
 ---
 
-## 🕹️ Game Modes
+##  Game Modes
 
 ![Game Modes Selection Screen](assets/game-modes.png)
 
@@ -26,7 +26,7 @@ A modern, web-based implementation of **Ultimate Tic Tac Toe** featuring a World
 
 ---
 
-## 🎯 How to Play
+##  How to Play
 
 ![How to Play Guide Overlay](assets/how-to-play.png)
 
@@ -40,13 +40,13 @@ Your move dictates where your opponent must play next. For example, placing a to
 
 ---
 
-## 🎮 Gameplay Mechanics
+##  Gameplay Mechanics
 
 ![Interactive Game Board and Power-Up Bar](assets/gameplay.png)
 
 ---
 
-## ⚡ Power-Up Arsenal (1 Use Each)
+##  Power-Up Arsenal (1 Use Each)
 
 | Power-Up   | Icon | Function                                                          |
 | :--------- | :--: | :---------------------------------------------------------------- |
@@ -89,7 +89,7 @@ Since this game is built as a self-contained single-page web application, no hea
   npx serve .
   ```
 
-## 📜 How to Play Summary
+##  How to Play Summary
 
 1. Objective: Win 3 sub-boards in a row (horizontal, vertical, or diagonal) to win the main board.
 2. Movement Rule: The cell index you pick in an active sub-board dictates which sub-board your opponent is forced to play on next.
@@ -99,6 +99,6 @@ Since this game is built as a self-contained single-page web application, no hea
 
 Developed by Odd Jobs Dev (Vimal Ram) for Itch.io.
 
-## 📄 License
+##  License
 
 Distributed under the MIT License. See `LICENSE` for more information.
