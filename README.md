@@ -57,7 +57,7 @@ Your move dictates where your opponent must play next. For example, placing a to
 
 ---
 
-## 🎡 Spin the Slot Wheel
+##  Spin the Slot Wheel
 
 ![Tournament Slot Selection Wheel Overlay](assets/spin-wheel.png)
 
